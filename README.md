@@ -1,42 +1,57 @@
 
 # TO-LET | Student Accommodation Marketplace
 
-A dual-role marketplace connecting property owners with students and young professionals seeking accommodation.
+A robust, dual-role marketplace designed specifically for the Indian market, connecting property owners with students and young professionals.
 
-## 🚀 Deploy to Vercel
+## 🌟 Core Features
 
-Since this project is built using a modern ESM-based React structure, it is incredibly easy to deploy as a static site.
+- **Dual-User Dashboards**: Tailored experiences for both Property Owners (Tenants) and Accommodation Seekers.
+- **Interactive Map Search**: Radius-based search functionality using Leaflet.js to find rooms near specific colleges or landmarks.
+- **Property Advertising**: Owners can list rooms (Single/Shared), PGs, or full apartments with descriptions, prices, and photo galleries.
+- **Smart Filtering**: Filter by property type, budget, and distance.
+- **Wishlist System**: Seekers can save favorites with real-time badge updates.
+- **Direct Enquiries**: Integrated messaging system for seekers to contact owners directly.
+- **Profile Management**: Indian-market specific validation (10-digit phone, age verification, address tracking).
 
-### Steps to Deploy:
+## 🛠 Tech Stack
 
-1.  **Prepare your Repository**: Ensure all files are in the root directory of your GitHub repository.
-2.  **Connect to Vercel**:
-    *   Go to [vercel.com](https://vercel.com) and log in.
-    *   Click **"Add New"** > **"Project"**.
-    *   Import your GitHub repository.
-3.  **Configure Build Settings**:
-    *   **Framework Preset**: Select `Other` or `Vite` (if using a build step). For this current setup, `Other` is fine as it serves static files.
-    *   **Output Directory**: `.` (root directory).
-4.  **Environment Variables**:
-    *   If you decide to add a real backend later, add your `API_KEY` in the Project Settings -> Environment Variables.
-5.  **Click Deploy**: Vercel will automatically detect the `vercel.json` and handle the routing.
+- **Frontend**: React (Modern ESM approach via `esm.sh`)
+- **Styling**: Tailwind CSS & Font Awesome 6
+- **Maps**: Leaflet.js (OpenStreetMap)
+- **Data Persistence**: LocalStorage (Simulated REST API)
+- **Deployment**: Optimized for Vercel
 
-## 🛠 Features
+## 🚀 Local Development
 
-- **Dual Roles**: Separate dashboards for Property Owners and Seekers.
-- **Interactive Maps**: Search for rooms within a specific radius using OpenStreetMap/Leaflet.
-- **Property Management**: Owners can list rooms, hostels, or apartments with multiple images.
-- **Wishlist & Enquiries**: Seekers can save favorites and send messages directly to owners.
-- **Profile Completion**: Mandatory profile details including Indian phone validation and address management.
+Since this project uses a no-build ESM architecture, you don't need a heavy build tool like Webpack or Vite to get started.
 
-## 💻 Technical Stack
+1. **Clone the repo**:
+   ```bash
+   git clone <your-repo-url>
+   cd to-let-marketplace
+   ```
 
-- **Frontend**: React (ESM via esm.sh)
-- **Styling**: Tailwind CSS, Font Awesome 6
-- **Maps**: Leaflet.js
-- **State Management**: React Hooks
-- **Data Persistence**: LocalStorage (Mock API)
+2. **Start a local server**:
+   You can use any static file server. For example:
+   ```bash
+   npx serve .
+   ```
 
-## 📞 Support
+3. **Open the App**:
+   Navigate to `http://localhost:3000` in your browser.
 
-For any enquiries regarding the platform, contact support@tolet.com.
+## 📦 Deployment to Vercel
+
+The project includes a `vercel.json` configured for SPA routing.
+
+1. Push your code to a GitHub/GitLab/Bitbucket repository.
+2. Connect your repository to [Vercel](https://vercel.com).
+3. Set the **Output Directory** to `.` (the root).
+4. Click **Deploy**.
+
+## 🛡 Security Note
+
+This demo uses `localStorage` to simulate a database. For a production environment, it is recommended to replace the `services/api.ts` logic with a real REST API (Node.js/Flask) and a secure database (PostgreSQL/MongoDB).
+
+---
+Built with ❤️ for students in India.

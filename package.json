@@ -1,23 +1,23 @@
+
 {
-  "name": "copy-of-to-let---accommodation-marketplace",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "to-let-marketplace",
+  "version": "1.0.0",
+  "description": "A dual-role student accommodation marketplace for the Indian market.",
+  "main": "index.html",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "npx serve .",
+    "dev": "npx serve ."
   },
-  "dependencies": {
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^5.0.0"
-  },
+  "keywords": [
+    "react",
+    "marketplace",
+    "accommodation",
+    "student-housing",
+    "india"
+  ],
+  "author": "TO-LET Team",
+  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "serve": "^14.2.0"
   }
 }
