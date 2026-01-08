@@ -1,19 +1,39 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { Property, PropertyType } from '../types';
+import { Property, PropertyType, User, UserRole } from '../types';
 
 interface LandingProps {
+  user: User | null;
   onNavigate: (page: string) => void;
   onPropertyClick: (id: string) => void;
 }
 
-export const Landing: React.FC<LandingProps> = ({ onNavigate, onPropertyClick }) => {
+export const Landing: React.FC<LandingProps> = ({ user, onNavigate, onPropertyClick }) => {
   const [featured, setFeatured] = useState<Property[]>([]);
 
   useEffect(() => {
     api.getProperties().then(props => setFeatured(props.slice(0, 3)));
   }, []);
+
+  const handleListProperty = async () => {
+    if (!user) {
+      onNavigate('auth');
+      return;
+    }
+
+    if (user.role === UserRole.TENANT) {
+      onNavigate('add-property');
+    } else if (user.role === UserRole.SEEKER) {
+      const confirmSwitch = window.confirm("You are currently registered as a Seeker. Would you like to switch to a Property Owner account to list your room?");
+      if (confirmSwitch) {
+        await api.updateProfile({ role: UserRole.TENANT });
+        onNavigate('add-property');
+      }
+    } else {
+      onNavigate('role-selection');
+    }
+  };
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -39,7 +59,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate, onPropertyClick })
                 Find Accommodation
               </button>
               <button 
-                onClick={() => onNavigate('auth')}
+                onClick={handleListProperty}
                 className="bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg border border-blue-500 hover:bg-blue-800 transition"
               >
                 List Your Property
@@ -52,7 +72,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate, onPropertyClick })
       {/* Quick Search Categories */}
       <section className="py-12 bg-white -mt-10 relative z-10 max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-2xl shadow-2xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition">
+          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition" onClick={() => onNavigate('search')}>
             <div className="w-12 h-12 bg-blue-50 text-blue-600 flex items-center justify-center rounded-lg">
               <i className="fa-solid fa-bed text-xl"></i>
             </div>
@@ -61,7 +81,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate, onPropertyClick })
               <p className="text-xs text-gray-500">Single & Shared</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition">
+          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition" onClick={() => onNavigate('search')}>
             <div className="w-12 h-12 bg-green-50 text-green-600 flex items-center justify-center rounded-lg">
               <i className="fa-solid fa-building-user text-xl"></i>
             </div>
@@ -70,7 +90,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate, onPropertyClick })
               <p className="text-xs text-gray-500">Boys & Girls</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition">
+          <div className="flex items-center space-x-4 p-4 border rounded-xl hover:border-blue-500 cursor-pointer transition" onClick={() => onNavigate('search')}>
             <div className="w-12 h-12 bg-purple-50 text-purple-600 flex items-center justify-center rounded-lg">
               <i className="fa-solid fa-house-chimney text-xl"></i>
             </div>

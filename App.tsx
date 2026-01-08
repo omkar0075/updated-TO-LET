@@ -56,7 +56,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <Landing onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
+        return <Landing user={user} onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
       case 'auth':
         return <Auth onLogin={handleLogin} />;
       case 'role-selection':
@@ -79,7 +79,7 @@ const App: React.FC = () => {
       case 'wishlist':
         return <Wishlist onPropertyClick={navigateToProperty} />;
       default:
-        return <Landing onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
+        return <Landing user={user} onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
     }
   };
 
