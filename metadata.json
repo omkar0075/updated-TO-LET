@@ -1,0 +1,8 @@
+{
+  "name": "Copy of TO-LET - Accommodation Marketplace",
+  "description": "A dual-role marketplace connecting property owners (tenants) with students and young professionals (seekers) for accommodation in India.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
