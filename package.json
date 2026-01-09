@@ -2,13 +2,15 @@
 {
   "name": "to-let-marketplace",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "serve": "vite preview --port 3000"
+    "serve": "vite preview --port 3000",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -16,7 +18,12 @@
     "leaflet": "^1.9.4",
     "react-leaflet": "^5.0.0",
     "@supabase/supabase-js": "^2.47.10",
-    "@google/genai": "^0.2.1"
+    "@google/genai": "^0.2.1",
+    "tailwindcss": "^3.4.0",
+    "lucide-react": "^0.344.0",
+    "framer-motion": "^11.0.0",
+    "react-query": "^5.0.0",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -24,6 +31,8 @@
     "@types/leaflet": "^1.9.12",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "eslint": "^9.0.0",
+    "prettier": "^3.2.0"
   }
 }
