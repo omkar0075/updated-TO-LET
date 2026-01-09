@@ -25,7 +25,7 @@ export const getPropertyInsight = async (property: Property): Promise<string> =>
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', // Updated to a stable available model
+      model: 'gemini-3-flash-preview', // Using latest recommended flash model
       contents: `You are a helpful student housing expert in India. 
       Analyze this property and provide a 3-sentence helpful summary for a student.
       Property Type: ${property.propertyType}
@@ -34,7 +34,7 @@ export const getPropertyInsight = async (property: Property): Promise<string> =>
       Address: ${property.address}
       Description: ${property.description}
       
-      Focus on value for money, neighborhood safety, and suitability for a student.`,
+      Focus on value for money, neighborhood safety, and suitability for a student. Be direct and honest.`,
     });
     return response.text || "Could not generate insight at this time.";
   } catch (error) {

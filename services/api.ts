@@ -3,40 +3,74 @@ import { User, Property, UserRole, WishlistItem, AccommodationRequest } from '..
 import { supabase, isSupabaseConfigured } from './supabase';
 import { MOCK_PROPERTIES } from '../constants';
 
+// Mapping functions to convert between DB snake_case and Frontend camelCase
+const mapProperty = (p: any): Property => ({
+  id: p.id,
+  ownerId: p.owner_id,
+  propertyType: p.property_type,
+  roomType: p.room_type,
+  rent: p.rent,
+  address: p.address,
+  coordinates: { lat: Number(p.latitude), lng: Number(p.longitude) },
+  images: p.images || [],
+  description: p.description,
+  createdAt: p.created_at,
+  verified: p.verified
+});
+
+const mapUser = (u: any): User => ({
+  id: u.id,
+  email: u.email,
+  fullName: u.full_name,
+  phone: u.phone,
+  age: u.age,
+  gender: u.gender,
+  role: u.role as UserRole,
+  permanentAddress: u.permanent_address,
+  currentAddress: u.current_address,
+  profileComplete: u.profile_complete
+});
+
 export const api = {
-  // Authentication
+  // Authentication & Profile
   getCurrentUser: async (): Promise<User | null> => {
     if (!isSupabaseConfigured) return null;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: profile, error } = await supabase
+        .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      return profile;
+      if (error || !profile) return null;
+      return mapUser(profile);
     } catch (e) {
       return null;
     }
   },
   
   login: async (email: string, password?: string): Promise<User | null> => {
-    if (!isSupabaseConfigured) throw new Error("Database not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.");
+    if (!isSupabaseConfigured) {
+      console.warn("Supabase not configured. Login is simulated.");
+      return null; 
+    }
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password: password || 'temporary_password_123' 
     });
 
-    if (error) throw error;
+    if (error) {
+      return api.signUp(email, password);
+    }
     return api.getCurrentUser();
   },
 
   signUp: async (email: string, password?: string): Promise<User | null> => {
-    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -46,8 +80,13 @@ export const api = {
     if (error) throw error;
     
     if (data.user) {
-      await supabase.from('profiles').insert([
-        { id: data.user.id, email: data.user.email, role: UserRole.NONE, profile_complete: false }
+      const { error: profileError } = await supabase.from('users').insert([
+        { 
+          id: data.user.id, 
+          email: data.user.email, 
+          role: 'NONE', 
+          profile_complete: false 
+        }
       ]);
     }
     
@@ -55,29 +94,30 @@ export const api = {
   },
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not logged in");
 
+    const updates: any = {};
+    if (userData.fullName !== undefined) updates.full_name = userData.fullName;
+    if (userData.phone !== undefined) updates.phone = userData.phone;
+    if (userData.age !== undefined) updates.age = userData.age;
+    if (userData.gender !== undefined) updates.gender = userData.gender;
+    if (userData.role !== undefined) updates.role = userData.role;
+    if (userData.permanentAddress !== undefined) updates.permanent_address = userData.permanentAddress;
+    if (userData.currentAddress !== undefined) updates.current_address = userData.currentAddress;
+    if (userData.profileComplete !== undefined) updates.profile_complete = userData.profileComplete;
+
     const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: userData.fullName,
-        phone: userData.phone,
-        age: userData.age,
-        gender: userData.gender,
-        role: userData.role,
-        permanent_address: userData.permanentAddress,
-        current_address: userData.currentAddress,
-        profile_complete: true
-      })
+      .from('users')
+      .update(updates)
       .eq('id', user.id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return mapUser(data);
   },
 
   logout: async () => {
@@ -89,11 +129,11 @@ export const api = {
   // Properties
   getProperties: async (filters?: { type?: string, minPrice?: number, maxPrice?: number }): Promise<Property[]> => {
     if (!isSupabaseConfigured) {
-      console.warn("Using mock data because Supabase is not configured.");
+      // Return mock data as a fallback so the app isn't empty
       return MOCK_PROPERTIES as any;
     }
 
-    let query = supabase.from('properties').select('*');
+    let query = supabase.from('properties').select('*').order('created_at', { ascending: false });
     
     if (filters) {
       if (filters.type) query = query.eq('property_type', filters.type);
@@ -102,25 +142,15 @@ export const api = {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      return MOCK_PROPERTIES as any;
+    }
     
-    return data.map(p => ({
-      id: p.id,
-      ownerId: p.owner_id,
-      propertyType: p.property_type,
-      roomType: p.room_type,
-      rent: p.rent,
-      address: p.address,
-      coordinates: p.coordinates,
-      images: p.images,
-      description: p.description,
-      createdAt: p.created_at,
-      verified: p.verified
-    }));
+    return data.map(mapProperty);
   },
 
   addProperty: async (propData: Omit<Property, 'id' | 'createdAt' | 'verified'>): Promise<Property> => {
-    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
     
     const { data, error } = await supabase
       .from('properties')
@@ -131,7 +161,8 @@ export const api = {
         rent: propData.rent,
         address: propData.address,
         description: propData.description,
-        coordinates: propData.coordinates,
+        latitude: propData.coordinates.lat,
+        longitude: propData.coordinates.lng,
         images: propData.images,
         verified: false
       }])
@@ -139,7 +170,7 @@ export const api = {
       .single();
 
     if (error) throw error;
-    return data;
+    return mapProperty(data);
   },
 
   // Wishlist
@@ -153,7 +184,7 @@ export const api = {
       .select('*')
       .eq('user_id', user.id)
       .eq('property_id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       await supabase.from('wishlist').delete().eq('id', existing.id);
@@ -169,21 +200,26 @@ export const api = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data: wishlistData } = await supabase
+    const { data: wishlistItems, error } = await supabase
       .from('wishlist')
       .select('property_id')
       .eq('user_id', user.id);
 
-    if (!wishlistData || wishlistData.length === 0) return [];
+    if (error || !wishlistItems || wishlistItems.length === 0) return [];
 
-    const ids = wishlistData.map(w => w.property_id);
-    const props = await api.getProperties();
-    return props.filter(p => ids.includes(p.id));
+    const ids = wishlistItems.map(w => w.property_id);
+    const { data: properties, error: propsError } = await supabase
+      .from('properties')
+      .select('*')
+      .in('id', ids);
+
+    if (propsError || !properties) return [];
+    return properties.map(mapProperty);
   },
 
   // Requests
   sendRequest: async (propertyId: string, ownerId: string, message: string): Promise<AccommodationRequest> => {
-    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not logged in");
 
@@ -211,9 +247,10 @@ export const api = {
     const { data, error } = await supabase
       .from('requests')
       .select('*')
-      .or(`owner_id.eq.${user.id},seeker_id.eq.${user.id}`);
+      .or(`owner_id.eq.${user.id},seeker_id.eq.${user.id}`)
+      .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) return [];
     return data;
   }
 };

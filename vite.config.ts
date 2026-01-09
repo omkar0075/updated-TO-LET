@@ -4,14 +4,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Standard mapping for environment variables
+    'process.env': process.env
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    rollupOptions: {
-      input: {
-        main: 'index.html'
-      }
-    }
   },
   server: {
     port: 3000

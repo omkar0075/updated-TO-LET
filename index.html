@@ -1,83 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TO-LET | Find Your Next Home</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-      color: #f8fafc;
-    }
-    .leaflet-container {
-      height: 100%;
-      width: 100%;
-      z-index: 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TO-LET | Find Your Next Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .leaflet-container {
+            height: 100%;
+            width: 100%;
+            z-index: 0;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-leaflet": "https://esm.sh/react-leaflet@^5.0.0",
+    "leaflet": "https://esm.sh/leaflet@^1.9.4",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+  }
+}
+</script>
 </head>
-<body class="min-h-screen flex flex-col">
-  <!-- Navbar -->
-  <header class="bg-gradient-to-r from-purple-700 via-purple-500 to-pink-500 shadow-lg">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-white">TO-LET</h1>
-      <nav class="space-x-6">
-        <a href="#" class="text-white hover:text-yellow-300 transition">Home</a>
-        <a href="#" class="text-white hover:text-yellow-300 transition">Listings</a>
-        <a href="#" class="text-white hover:text-yellow-300 transition">Contact</a>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Hero Section -->
-  <section class="flex-1 flex items-center justify-center text-center px-6 py-20 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-600">
-    <div>
-      <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-6">
-        Find Your Next Dream Home
-      </h2>
-      <p class="text-lg md:text-xl text-purple-200 mb-8">
-        Explore listings, connect with landlords, and move into your perfect place.
-      </p>
-      <button class="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg shadow-lg transition">
-        Get Started
-      </button>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="py-16 bg-gradient-to-r from-purple-800 via-purple-600 to-purple-400">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 text-center text-white">
-      <div class="p-6 bg-purple-700 rounded-xl shadow-lg hover:scale-105 transition">
-        <i class="fa-solid fa-house text-4xl mb-4"></i>
-        <h3 class="text-xl font-bold mb-2">Wide Listings</h3>
-        <p>Browse hundreds of verified rental properties tailored to your needs.</p>
-      </div>
-      <div class="p-6 bg-purple-700 rounded-xl shadow-lg hover:scale-105 transition">
-        <i class="fa-solid fa-map-location-dot text-4xl mb-4"></i>
-        <h3 class="text-xl font-bold mb-2">Interactive Map</h3>
-        <p>Find homes easily with our integrated map powered by Leaflet.</p>
-      </div>
-      <div class="p-6 bg-purple-700 rounded-xl shadow-lg hover:scale-105 transition">
-        <i class="fa-solid fa-handshake text-4xl mb-4"></i>
-        <h3 class="text-xl font-bold mb-2">Trusted Connections</h3>
-        <p>Connect directly with landlords and property managers securely.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="bg-gradient-to-r from-purple-900 via-purple-700 to-purple-500 py-6 text-center text-white">
-    <p>&copy; 2026 TO-LET. All rights reserved.</p>
-  </footer>
-
-  <!-- Vite entry point -->
-  <script type="module" src="/index.tsx"></script>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
