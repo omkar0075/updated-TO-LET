@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('landing');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<string[]>(['landing']);
 
   useEffect(() => {
     // Initial user check
@@ -28,9 +29,9 @@ const App: React.FC = () => {
       
       if (currentUser) {
         if (!currentUser.profileComplete) {
-          setCurrentPage('profile');
+          navigate('profile');
         } else if (currentUser.role === UserRole.NONE) {
-          setCurrentPage('role-selection');
+          navigate('role-selection');
         }
       }
       setLoading(false);
@@ -43,31 +44,52 @@ const App: React.FC = () => {
       if (event === 'SIGNED_IN') {
         const u = await api.getCurrentUser();
         setUser(u);
-        if (u && !u.profileComplete) setCurrentPage('profile');
-        else if (u && u.role === UserRole.NONE) setCurrentPage('role-selection');
+        if (u && !u.profileComplete) navigate('profile');
+        else if (u && u.role === UserRole.NONE) navigate('role-selection');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setCurrentPage('landing');
+        navigate('landing', true);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const navigate = (page: string, reset = false) => {
+    if (page === currentPage) return;
+    if (reset) {
+      setHistory(['landing', page]);
+    } else {
+      setHistory(prev => [...prev, page]);
+    }
+    setCurrentPage(page);
+  };
+
+  const handleBack = () => {
+    if (history.length > 1) {
+      const newHistory = [...history];
+      newHistory.pop(); // Remove current page
+      const previousPage = newHistory[newHistory.length - 1];
+      setHistory(newHistory);
+      setCurrentPage(previousPage);
+    } else {
+      setCurrentPage('landing');
+    }
+  };
+
   const handleLogin = async (email: string) => {
-    // This is now handled by the supabase auth listener automatically
-    // but we can trigger navigation here if needed.
+    // Handled by supabase listener
   };
 
   const handleLogout = async () => {
     await api.logout();
     setUser(null);
-    setCurrentPage('landing');
+    navigate('landing', true);
   };
 
   const navigateToProperty = (id: string) => {
     setSelectedPropertyId(id);
-    setCurrentPage('property-details');
+    navigate('property-details');
   };
 
   const renderPage = () => {
@@ -79,30 +101,30 @@ const App: React.FC = () => {
 
     switch (currentPage) {
       case 'landing':
-        return <Landing user={user} onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
+        return <Landing user={user} onNavigate={navigate} onPropertyClick={navigateToProperty} />;
       case 'auth':
         return <Auth onLogin={handleLogin} />;
       case 'role-selection':
-        return <RoleSelection user={user} onComplete={() => setCurrentPage('landing')} />;
+        return <RoleSelection user={user} onComplete={() => navigate('landing')} />;
       case 'profile':
         return <Profile user={user!} onComplete={async () => {
           const u = await api.getCurrentUser();
           setUser(u);
-          if (u?.role === UserRole.NONE) setCurrentPage('role-selection');
-          else setCurrentPage('landing');
+          if (u?.role === UserRole.NONE) navigate('role-selection');
+          else navigate('landing');
         }} />;
       case 'search':
         return <Search onPropertyClick={navigateToProperty} />;
       case 'dashboard':
-        return <Dashboard user={user!} onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
+        return <Dashboard user={user!} onNavigate={navigate} onPropertyClick={navigateToProperty} />;
       case 'add-property':
-        return <AddProperty user={user!} onComplete={() => setCurrentPage('dashboard')} />;
+        return <AddProperty user={user!} onComplete={() => navigate('dashboard')} />;
       case 'property-details':
-        return <PropertyDetails propertyId={selectedPropertyId!} user={user} onNavigate={setCurrentPage} />;
+        return <PropertyDetails propertyId={selectedPropertyId!} user={user} onNavigate={navigate} />;
       case 'wishlist':
         return <Wishlist onPropertyClick={navigateToProperty} />;
       default:
-        return <Landing user={user} onNavigate={setCurrentPage} onPropertyClick={navigateToProperty} />;
+        return <Landing user={user} onNavigate={navigate} onPropertyClick={navigateToProperty} />;
     }
   };
 
@@ -110,7 +132,8 @@ const App: React.FC = () => {
     <Layout 
       user={user} 
       onLogout={handleLogout} 
-      onNavigate={setCurrentPage}
+      onNavigate={navigate}
+      onBack={handleBack}
       currentPage={currentPage}
     >
       {renderPage()}
