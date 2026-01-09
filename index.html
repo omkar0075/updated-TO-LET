@@ -25,20 +25,22 @@
 <script type="importmap">
 {
   "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "leaflet": "https://esm.sh/leaflet@^1.9.4",
-    "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "react-leaflet": "https://esm.sh/react-leaflet@^5.0.0"
+    "react-leaflet": "https://esm.sh/react-leaflet@^5.0.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "leaflet": "https://esm.sh/leaflet@^1.9.4"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
-    <!-- Load the React entry point - Vite will handle compilation -->
+    <!-- Vite entry point -->
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>

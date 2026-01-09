@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Property, User, UserRole } from '../types';
 import { api } from '../services/api';
+import { getPropertyInsight } from '../services/gemini';
 import { MapPicker } from '../components/MapPicker';
 
 interface PropertyDetailsProps {
@@ -16,6 +17,8 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   useEffect(() => {
     api.getProperties().then(props => {
@@ -40,6 +43,14 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
     setIsWishlisted(result);
   };
 
+  const handleAiInsight = async () => {
+    if (!property) return;
+    setIsAiLoading(true);
+    const insight = await getPropertyInsight(property);
+    setAiInsight(insight);
+    setIsAiLoading(false);
+  };
+
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -52,11 +63,17 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
     setSent(true);
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center space-x-2">
+      <div className="w-4 h-4 bg-blue-600 rounded-full animate-bounce"></div>
+      <div className="w-4 h-4 bg-blue-600 rounded-full animate-bounce delay-75"></div>
+      <div className="w-4 h-4 bg-blue-600 rounded-full animate-bounce delay-150"></div>
+    </div>
+  );
   if (!property) return <div className="h-screen flex items-center justify-center">Property not found</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2">
           {/* Gallery */}
@@ -86,6 +103,34 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
             </div>
           </div>
 
+          {/* AI Insight Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 border border-blue-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-blue-800 font-bold flex items-center">
+                <i className="fa-solid fa-wand-magic-sparkles mr-2 text-indigo-500"></i>
+                AI Smart Insight
+              </h4>
+              {!aiInsight && (
+                <button 
+                  onClick={handleAiInsight}
+                  disabled={isAiLoading}
+                  className="text-xs bg-white text-blue-600 px-3 py-1.5 rounded-full font-bold shadow-sm hover:shadow transition disabled:opacity-50"
+                >
+                  {isAiLoading ? 'Analyzing...' : 'Generate Insight'}
+                </button>
+              )}
+            </div>
+            {aiInsight ? (
+              <p className="text-sm text-blue-700 leading-relaxed italic">"{aiInsight}"</p>
+            ) : isAiLoading ? (
+              <div className="flex space-x-2">
+                <div className="h-2 w-full bg-blue-200 rounded animate-pulse"></div>
+              </div>
+            ) : (
+              <p className="text-xs text-blue-400">Get a quick AI summary of why this place might be perfect for you.</p>
+            )}
+          </div>
+
           <div className="border-y py-8 mb-8 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600"><i className="fa-solid fa-wifi"></i></div>
@@ -107,7 +152,7 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
 
           <div className="mb-10">
             <h3 className="text-xl font-bold mb-4">Description</h3>
-            <p className="text-gray-600 leading-relaxed">{property.description || 'Spacious accommodation perfect for students or working professionals. Located in a safe neighborhood with easy access to public transport and essential services.'}</p>
+            <p className="text-gray-600 leading-relaxed">{property.description || 'Spacious accommodation perfect for students or working professionals.'}</p>
           </div>
 
           <div>
@@ -155,16 +200,16 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ propertyId, us
                 >
                   Send Enquiry
                 </button>
-                <p className="text-[10px] text-gray-400 text-center px-4">By sending an enquiry, you agree to our safety guidelines for seekers.</p>
+                <p className="text-[10px] text-gray-400 text-center px-4">By sending an enquiry, you agree to our safety guidelines.</p>
               </form>
             )}
 
             <div className="mt-8 pt-8 border-t">
               <h4 className="font-bold text-sm mb-4">Safety Tips</h4>
               <ul className="text-xs text-gray-500 space-y-2">
-                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Always visit the property before paying</li>
-                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Meet the owner in a public place if possible</li>
-                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Request to see valid ownership documents</li>
+                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Always visit before paying</li>
+                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Meet the owner in a public place</li>
+                <li><i className="fa-solid fa-check text-green-500 mr-2"></i> Check valid documents</li>
               </ul>
             </div>
           </div>

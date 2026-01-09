@@ -1,146 +1,219 @@
 
-import { User, Property, UserRole, WishlistItem, AccommodationRequest, Message } from '../types';
+import { User, Property, UserRole, WishlistItem, AccommodationRequest } from '../types';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { MOCK_PROPERTIES } from '../constants';
 
-const STORAGE_KEYS = {
-  USERS: 'tolet_users',
-  PROPERTIES: 'tolet_properties',
-  WISHLIST: 'tolet_wishlist',
-  REQUESTS: 'tolet_requests',
-  MESSAGES: 'tolet_messages',
-  CURRENT_USER: 'tolet_current_user'
-};
-
-const getFromStorage = <T,>(key: string, defaultValue: T): T => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
-};
-
-const saveToStorage = <T,>(key: string, data: T) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-// Initialize properties with mock data if empty
-if (!localStorage.getItem(STORAGE_KEYS.PROPERTIES)) {
-  saveToStorage(STORAGE_KEYS.PROPERTIES, MOCK_PROPERTIES);
-}
-
 export const api = {
-  // Auth
-  getCurrentUser: (): User | null => getFromStorage(STORAGE_KEYS.CURRENT_USER, null),
-  
-  login: async (email: string): Promise<User> => {
-    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    let user = users.find(u => u.email === email);
-    if (!user) {
-      // For demo, create user if not exists
-      user = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        fullName: '',
-        phone: '',
-        age: 18,
-        gender: 'Prefer not',
-        role: UserRole.NONE,
-        permanentAddress: '',
-        currentAddress: '',
-        profileComplete: false
-      };
-      users.push(user);
-      saveToStorage(STORAGE_KEYS.USERS, users);
+  // Authentication
+  getCurrentUser: async (): Promise<User | null> => {
+    if (!isSupabaseConfigured) return null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      return profile;
+    } catch (e) {
+      return null;
     }
-    saveToStorage(STORAGE_KEYS.CURRENT_USER, user);
-    return user;
+  },
+  
+  login: async (email: string, password?: string): Promise<User | null> => {
+    if (!isSupabaseConfigured) throw new Error("Database not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.");
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: password || 'temporary_password_123' 
+    });
+
+    if (error) throw error;
+    return api.getCurrentUser();
+  },
+
+  signUp: async (email: string, password?: string): Promise<User | null> => {
+    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: password || 'temporary_password_123'
+    });
+
+    if (error) throw error;
+    
+    if (data.user) {
+      await supabase.from('profiles').insert([
+        { id: data.user.id, email: data.user.email, role: UserRole.NONE, profile_complete: false }
+      ]);
+    }
+    
+    return api.getCurrentUser();
   },
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    const current = api.getCurrentUser();
-    if (!current) throw new Error("Not logged in");
-    const updated = { ...current, ...userData, profileComplete: true };
-    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    const index = users.findIndex(u => u.id === current.id);
-    if (index > -1) users[index] = updated;
-    else users.push(updated);
-    saveToStorage(STORAGE_KEYS.USERS, users);
-    saveToStorage(STORAGE_KEYS.CURRENT_USER, updated);
-    return updated;
+    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not logged in");
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: userData.fullName,
+        phone: userData.phone,
+        age: userData.age,
+        gender: userData.gender,
+        role: userData.role,
+        permanent_address: userData.permanentAddress,
+        current_address: userData.currentAddress,
+        profile_complete: true
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
-  logout: () => {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  logout: async () => {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
   },
 
   // Properties
   getProperties: async (filters?: { type?: string, minPrice?: number, maxPrice?: number }): Promise<Property[]> => {
-    let props = getFromStorage<Property[]>(STORAGE_KEYS.PROPERTIES, []);
-    if (filters) {
-      if (filters.type) props = props.filter(p => p.propertyType === filters.type);
-      if (filters.minPrice) props = props.filter(p => p.rent >= filters.minPrice!);
-      if (filters.maxPrice) props = props.filter(p => p.rent <= filters.maxPrice!);
+    if (!isSupabaseConfigured) {
+      console.warn("Using mock data because Supabase is not configured.");
+      return MOCK_PROPERTIES as any;
     }
-    return props;
+
+    let query = supabase.from('properties').select('*');
+    
+    if (filters) {
+      if (filters.type) query = query.eq('property_type', filters.type);
+      if (filters.minPrice) query = query.gte('rent', filters.minPrice);
+      if (filters.maxPrice) query = query.lte('rent', filters.maxPrice);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    
+    return data.map(p => ({
+      id: p.id,
+      ownerId: p.owner_id,
+      propertyType: p.property_type,
+      roomType: p.room_type,
+      rent: p.rent,
+      address: p.address,
+      coordinates: p.coordinates,
+      images: p.images,
+      description: p.description,
+      createdAt: p.created_at,
+      verified: p.verified
+    }));
   },
 
   addProperty: async (propData: Omit<Property, 'id' | 'createdAt' | 'verified'>): Promise<Property> => {
-    const props = getFromStorage<Property[]>(STORAGE_KEYS.PROPERTIES, []);
-    const newProp: Property = {
-      ...propData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      verified: false
-    };
-    props.push(newProp);
-    saveToStorage(STORAGE_KEYS.PROPERTIES, props);
-    return newProp;
+    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    
+    const { data, error } = await supabase
+      .from('properties')
+      .insert([{
+        owner_id: propData.ownerId,
+        property_type: propData.propertyType,
+        room_type: propData.roomType,
+        rent: propData.rent,
+        address: propData.address,
+        description: propData.description,
+        coordinates: propData.coordinates,
+        images: propData.images,
+        verified: false
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   // Wishlist
   toggleWishlist: async (propertyId: string): Promise<boolean> => {
-    const user = api.getCurrentUser();
+    if (!isSupabaseConfigured) return false;
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-    let wishlist = getFromStorage<WishlistItem[]>(STORAGE_KEYS.WISHLIST, []);
-    const exists = wishlist.some(item => item.userId === user.id && item.propertyId === propertyId);
-    if (exists) {
-      wishlist = wishlist.filter(item => !(item.userId === user.id && item.propertyId === propertyId));
+
+    const { data: existing } = await supabase
+      .from('wishlist')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('property_id', propertyId)
+      .single();
+
+    if (existing) {
+      await supabase.from('wishlist').delete().eq('id', existing.id);
+      return false;
     } else {
-      wishlist.push({ userId: user.id, propertyId });
+      await supabase.from('wishlist').insert([{ user_id: user.id, property_id: propertyId }]);
+      return true;
     }
-    saveToStorage(STORAGE_KEYS.WISHLIST, wishlist);
-    return !exists;
   },
 
   getWishlist: async (): Promise<Property[]> => {
-    const user = api.getCurrentUser();
+    if (!isSupabaseConfigured) return [];
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const wishlist = getFromStorage<WishlistItem[]>(STORAGE_KEYS.WISHLIST, []);
-    const propertyIds = wishlist.filter(item => item.userId === user.id).map(item => item.propertyId);
+
+    const { data: wishlistData } = await supabase
+      .from('wishlist')
+      .select('property_id')
+      .eq('user_id', user.id);
+
+    if (!wishlistData || wishlistData.length === 0) return [];
+
+    const ids = wishlistData.map(w => w.property_id);
     const props = await api.getProperties();
-    return props.filter(p => propertyIds.includes(p.id));
+    return props.filter(p => ids.includes(p.id));
   },
 
-  // Requests & Messages
+  // Requests
   sendRequest: async (propertyId: string, ownerId: string, message: string): Promise<AccommodationRequest> => {
-    const user = api.getCurrentUser();
+    if (!isSupabaseConfigured) throw new Error("Database not configured.");
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not logged in");
-    const requests = getFromStorage<AccommodationRequest[]>(STORAGE_KEYS.REQUESTS, []);
-    const newRequest: AccommodationRequest = {
-      id: Math.random().toString(36).substr(2, 9),
-      propertyId,
-      ownerId,
-      seekerId: user.id,
-      message,
-      status: 'new',
-      createdAt: new Date().toISOString()
-    };
-    requests.push(newRequest);
-    saveToStorage(STORAGE_KEYS.REQUESTS, requests);
-    return newRequest;
+
+    const { data, error } = await supabase
+      .from('requests')
+      .insert([{
+        property_id: propertyId,
+        owner_id: ownerId,
+        seeker_id: user.id,
+        message,
+        status: 'new'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   getRequests: async (): Promise<AccommodationRequest[]> => {
-    const user = api.getCurrentUser();
+    if (!isSupabaseConfigured) return [];
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const requests = getFromStorage<AccommodationRequest[]>(STORAGE_KEYS.REQUESTS, []);
-    return requests.filter(r => r.ownerId === user.id || r.seekerId === user.id);
+
+    const { data, error } = await supabase
+      .from('requests')
+      .select('*')
+      .or(`owner_id.eq.${user.id},seeker_id.eq.${user.id}`);
+
+    if (error) throw error;
+    return data;
   }
 };

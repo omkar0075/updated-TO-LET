@@ -1,3 +1,4 @@
+
 {
   "name": "to-let-marketplace",
   "private": true,
@@ -13,7 +14,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "leaflet": "^1.9.4",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "@supabase/supabase-js": "^2.47.10",
+    "@google/genai": "^0.2.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -24,111 +27,3 @@
     "vite": "^6.0.7"
   }
 }
-2. CREATE vite.config.js (new file):
-javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    rollupOptions: {
-      input: {
-        main: 'index.html'
-      }
-    }
-  },
-  server: {
-    port: 3000
-  }
-})
-3. CREATE tsconfig.json (new file):
-json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": false
-  },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
-}
-4. CREATE tsconfig.node.json (new file):
-json
-{
-  "compilerOptions": {
-    "composite": true,
-    "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
-  },
-  "include": ["vite.config.ts"]
-}
-5. FIX index.html (update it):
-Remove the <script type="importmap"> section completely
-
-Change the last script from: <script type="module" src="./index.tsx"></script>
-
-To: <script type="module" src="/src/index.tsx"></script>
-
-6. CREATE folder structure:
-Create a src/ folder
-
-Move all .tsx and .ts files into src/
-
-Keep index.html in root folder
-
-7. CREATE vercel.json (new file):
-json
-{
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "outputDirectory": "dist",
-  "framework": "vite"
-}
-IMPORTANT:
-Update all import paths in TypeScript files to work from src/ folder
-
-Make sure App.tsx and index.tsx are inside src/ folder
-
-The index.html should stay in root folder
-
-Please regenerate ALL my project files with these fixes so that Vercel can build my React app properly. Make sure the app won't show blank screen after deployment.
-
-text
-
----
-
-## **After giving this prompt:**
-
-1. **Copy all the fixed files** that Google AI Studio gives you
-2. **Replace your current files** with the fixed ones
-3. **Run these commands:**
-   ```bash
-   # Delete node_modules if exists
-   rm -rf node_modules
-   
-   # Install fresh
-   npm install
-   
-   # Test build locally
-   npm run build
-   
-   # Check if dist folder is created
-   ls dist/
