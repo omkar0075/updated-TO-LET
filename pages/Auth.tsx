@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 interface AuthProps {
-  onLogin: (email: string) => void;
+  onLogin: (email: string, password?: string) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
@@ -11,8 +11,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -26,8 +27,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       return;
     }
 
-    // In this mock, we just trigger the login
-    onLogin(email);
+    setLoading(true);
+    try {
+      await onLogin(email, password);
+    } catch (err: any) {
+      setError(err.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,15 +96,23 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
             {isLogin && (
               <div className="flex items-center justify-end">
-                <a href="#" className="text-sm font-semibold text-blue-600 hover:underline">Forgot password?</a>
+                <button type="button" className="text-sm font-semibold text-blue-600 hover:underline">Forgot password?</button>
               </div>
             )}
 
             <button 
               type="submit"
-              className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 shadow-lg hover:shadow-blue-200 transition transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 shadow-lg hover:shadow-blue-200 transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLogin ? 'Login' : 'Continue'}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  {isLogin ? 'Logging in...' : 'Signing up...'}
+                </div>
+              ) : (
+                isLogin ? 'Login' : 'Continue'
+              )}
             </button>
           </form>
 

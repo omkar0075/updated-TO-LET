@@ -3,6 +3,19 @@ import { User, Property, UserRole, WishlistItem, AccommodationRequest } from '..
 import { supabase, isSupabaseConfigured } from './supabase';
 import { MOCK_PROPERTIES } from '../constants';
 
+const MOCK_USER: User = {
+  id: 'u1-mock',
+  email: 'demo@tolet.com',
+  fullName: 'Demo Student',
+  phone: '9876543210',
+  age: 21,
+  gender: 'Male',
+  role: UserRole.NONE,
+  permanentAddress: '123, Demo St, Mumbai',
+  currentAddress: '123, Demo St, Mumbai',
+  profileComplete: true
+};
+
 // Mapping functions to convert between DB snake_case and Frontend camelCase
 const mapProperty = (p: any): Property => ({
   id: p.id,
@@ -34,7 +47,11 @@ const mapUser = (u: any): User => ({
 export const api = {
   // Authentication & Profile
   getCurrentUser: async (): Promise<User | null> => {
-    if (!isSupabaseConfigured) return null;
+    if (!isSupabaseConfigured) {
+      const isDemo = localStorage.getItem('tolet_demo_session');
+      return isDemo ? MOCK_USER : null;
+    }
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -54,8 +71,9 @@ export const api = {
   
   login: async (email: string, password?: string): Promise<User | null> => {
     if (!isSupabaseConfigured) {
-      console.warn("Supabase not configured. Login is simulated.");
-      return null; 
+      console.warn("Supabase not configured. Entering Demo Mode.");
+      localStorage.setItem('tolet_demo_session', 'true');
+      return MOCK_USER; 
     }
     
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -70,7 +88,10 @@ export const api = {
   },
 
   signUp: async (email: string, password?: string): Promise<User | null> => {
-    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
+    if (!isSupabaseConfigured) {
+      localStorage.setItem('tolet_demo_session', 'true');
+      return MOCK_USER;
+    }
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -80,7 +101,7 @@ export const api = {
     if (error) throw error;
     
     if (data.user) {
-      const { error: profileError } = await supabase.from('users').insert([
+      await supabase.from('users').insert([
         { 
           id: data.user.id, 
           email: data.user.email, 
@@ -94,7 +115,10 @@ export const api = {
   },
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
+    if (!isSupabaseConfigured) {
+      // In demo mode, we just return the updated user (local state only)
+      return { ...MOCK_USER, ...userData };
+    }
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not logged in");
@@ -124,12 +148,12 @@ export const api = {
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem('tolet_demo_session');
   },
 
   // Properties
   getProperties: async (filters?: { type?: string, minPrice?: number, maxPrice?: number }): Promise<Property[]> => {
     if (!isSupabaseConfigured) {
-      // Return mock data as a fallback so the app isn't empty
       return MOCK_PROPERTIES as any;
     }
 
@@ -150,7 +174,14 @@ export const api = {
   },
 
   addProperty: async (propData: Omit<Property, 'id' | 'createdAt' | 'verified'>): Promise<Property> => {
-    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
+    if (!isSupabaseConfigured) {
+      return {
+        ...propData,
+        id: Math.random().toString(36).substr(2, 9),
+        createdAt: new Date().toISOString(),
+        verified: false
+      } as Property;
+    }
     
     const { data, error } = await supabase
       .from('properties')
@@ -175,7 +206,7 @@ export const api = {
 
   // Wishlist
   toggleWishlist: async (propertyId: string): Promise<boolean> => {
-    if (!isSupabaseConfigured) return false;
+    if (!isSupabaseConfigured) return true;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
@@ -196,7 +227,7 @@ export const api = {
   },
 
   getWishlist: async (): Promise<Property[]> => {
-    if (!isSupabaseConfigured) return [];
+    if (!isSupabaseConfigured) return MOCK_PROPERTIES.slice(0, 1) as any;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
@@ -219,7 +250,9 @@ export const api = {
 
   // Requests
   sendRequest: async (propertyId: string, ownerId: string, message: string): Promise<AccommodationRequest> => {
-    if (!isSupabaseConfigured) throw new Error("Supabase is not configured.");
+    if (!isSupabaseConfigured) {
+      return { id: 'req-mock', propertyId, ownerId, seekerId: 'u1-mock', message, status: 'new', createdAt: new Date().toISOString() };
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not logged in");
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from './types';
 import { api } from './services/api';
 import { supabase } from './services/supabase';
@@ -21,31 +21,45 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<string[]>(['landing']);
 
+  const navigate = useCallback((page: string, reset = false) => {
+    if (page === currentPage && !reset) return;
+    if (reset) {
+      setHistory(['landing', page]);
+    } else {
+      setHistory(prev => [...prev, page]);
+    }
+    setCurrentPage(page);
+  }, [currentPage]);
+
+  const checkSetupAndNavigate = useCallback((u: User) => {
+    if (!u.profileComplete) {
+      navigate('profile');
+    } else if (u.role === UserRole.NONE) {
+      navigate('role-selection');
+    } else {
+      navigate('landing');
+    }
+  }, [navigate]);
+
   useEffect(() => {
-    // Initial user check
     const checkUser = async () => {
       const currentUser = await api.getCurrentUser();
-      setUser(currentUser);
-      
       if (currentUser) {
-        if (!currentUser.profileComplete) {
-          navigate('profile');
-        } else if (currentUser.role === UserRole.NONE) {
-          navigate('role-selection');
-        }
+        setUser(currentUser);
+        checkSetupAndNavigate(currentUser);
       }
       setLoading(false);
     };
 
     checkUser();
 
-    // Listener for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         const u = await api.getCurrentUser();
-        setUser(u);
-        if (u && !u.profileComplete) navigate('profile');
-        else if (u && u.role === UserRole.NONE) navigate('role-selection');
+        if (u) {
+          setUser(u);
+          checkSetupAndNavigate(u);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         navigate('landing', true);
@@ -53,22 +67,12 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  const navigate = (page: string, reset = false) => {
-    if (page === currentPage) return;
-    if (reset) {
-      setHistory(['landing', page]);
-    } else {
-      setHistory(prev => [...prev, page]);
-    }
-    setCurrentPage(page);
-  };
+  }, [navigate, checkSetupAndNavigate]);
 
   const handleBack = () => {
     if (history.length > 1) {
       const newHistory = [...history];
-      newHistory.pop(); // Remove current page
+      newHistory.pop();
       const previousPage = newHistory[newHistory.length - 1];
       setHistory(newHistory);
       setCurrentPage(previousPage);
@@ -77,8 +81,18 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = async (email: string) => {
-    // Handled by supabase listener
+  const handleLogin = async (email: string, password?: string) => {
+    try {
+      const u = await api.login(email, password);
+      if (u) {
+        // Explicitly set user and navigate in case the Supabase listener doesn't trigger 
+        // (common in demo mode or certain network conditions)
+        setUser(u);
+        checkSetupAndNavigate(u);
+      }
+    } catch (e: any) {
+      alert(e.message || "Failed to log in");
+    }
   };
 
   const handleLogout = async () => {
@@ -109,9 +123,10 @@ const App: React.FC = () => {
       case 'profile':
         return <Profile user={user!} onComplete={async () => {
           const u = await api.getCurrentUser();
-          setUser(u);
-          if (u?.role === UserRole.NONE) navigate('role-selection');
-          else navigate('landing');
+          if (u) {
+            setUser(u);
+            checkSetupAndNavigate(u);
+          }
         }} />;
       case 'search':
         return <Search onPropertyClick={navigateToProperty} />;
