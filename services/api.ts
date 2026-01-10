@@ -204,6 +204,34 @@ export const api = {
     return mapProperty(data);
   },
 
+  updateProperty: async (id: string, propData: Partial<Property>): Promise<Property> => {
+    if (!isSupabaseConfigured) {
+      return { ...propData, id } as Property;
+    }
+
+    const updates: any = {};
+    if (propData.propertyType) updates.property_type = propData.propertyType;
+    if (propData.roomType) updates.room_type = propData.roomType;
+    if (propData.rent !== undefined) updates.rent = propData.rent;
+    if (propData.address) updates.address = propData.address;
+    if (propData.description) updates.description = propData.description;
+    if (propData.coordinates) {
+      updates.latitude = propData.coordinates.lat;
+      updates.longitude = propData.coordinates.lng;
+    }
+    if (propData.images) updates.images = propData.images;
+
+    const { data, error } = await supabase
+      .from('properties')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapProperty(data);
+  },
+
   // Wishlist
   toggleWishlist: async (propertyId: string): Promise<boolean> => {
     if (!isSupabaseConfigured) return true;

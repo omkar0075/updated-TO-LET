@@ -7,9 +7,10 @@ interface DashboardProps {
   user: User;
   onNavigate: (page: string) => void;
   onPropertyClick: (id: string) => void;
+  onEditProperty: (id: string) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onPropertyClick }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onPropertyClick, onEditProperty }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [requests, setRequests] = useState<AccommodationRequest[]>([]);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -79,8 +80,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onProper
                       <div className="flex justify-between items-center">
                         <span className="text-blue-600 font-bold">₹{p.rent}</span>
                         <div className="flex space-x-2">
-                           <button className="p-1.5 text-gray-400 hover:text-blue-600 transition"><i className="fa-solid fa-pen-to-square"></i></button>
-                           <button onClick={() => onPropertyClick(p.id)} className="p-1.5 text-gray-400 hover:text-blue-600 transition"><i className="fa-solid fa-eye"></i></button>
+                           <button 
+                             onClick={() => onEditProperty(p.id)}
+                             className="p-1.5 text-gray-400 hover:text-blue-600 transition"
+                             title="Edit Property"
+                           >
+                             <i className="fa-solid fa-pen-to-square"></i>
+                           </button>
+                           <button 
+                             onClick={() => onPropertyClick(p.id)} 
+                             className="p-1.5 text-gray-400 hover:text-blue-600 transition"
+                             title="View Property"
+                           >
+                             <i className="fa-solid fa-eye"></i>
+                           </button>
                         </div>
                       </div>
                     </div>

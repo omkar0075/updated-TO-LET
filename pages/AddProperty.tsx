@@ -1,19 +1,20 @@
 
-import React, { useState } from 'react';
-import { User, PropertyType, RoomType, Coordinates } from '../types';
+import React, { useState, useEffect } from 'react';
+import { User, PropertyType, RoomType, Coordinates, Property } from '../types';
 import { api } from '../services/api';
 import { MapPicker } from '../components/MapPicker';
 
 interface AddPropertyProps {
   user: User;
+  propertyId?: string; // Optional ID for editing mode
   onComplete: () => void;
 }
 
-export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) => {
+export const AddProperty: React.FC<AddPropertyProps> = ({ user, propertyId, onComplete }) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [isPublished, setIsPublished] = useState(false);
-  const [publishedId, setPublishedId] = useState('');
+  const [loading, setLoading] = useState(!!propertyId);
   const [formData, setFormData] = useState({
     propertyType: PropertyType.ROOM,
     roomType: RoomType.SINGLE,
@@ -23,6 +24,26 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
     coordinates: { lat: 18.5204, lng: 73.8567 }, // Default to Pune
     images: [] as string[]
   });
+
+  useEffect(() => {
+    if (propertyId) {
+      api.getProperties().then(props => {
+        const p = props.find(item => item.id === propertyId);
+        if (p) {
+          setFormData({
+            propertyType: p.propertyType,
+            roomType: p.roomType,
+            rent: p.rent,
+            address: p.address,
+            description: p.description,
+            coordinates: p.coordinates,
+            images: p.images
+          });
+        }
+        setLoading(false);
+      });
+    }
+  }, [propertyId]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -73,22 +94,43 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
     setError('');
     
     try {
-      const newProp = await api.addProperty({
-        ownerId: user.id,
-        propertyType: formData.propertyType,
-        roomType: formData.roomType,
-        rent: formData.rent,
-        address: formData.address,
-        description: formData.description,
-        coordinates: formData.coordinates,
-        images: formData.images.length > 0 ? formData.images : ['https://picsum.photos/seed/default/600/400']
-      });
-      setPublishedId(newProp.id);
+      if (propertyId) {
+        // Edit mode
+        await api.updateProperty(propertyId, {
+          propertyType: formData.propertyType,
+          roomType: formData.roomType,
+          rent: formData.rent,
+          address: formData.address,
+          description: formData.description,
+          coordinates: formData.coordinates,
+          images: formData.images
+        });
+      } else {
+        // Add mode
+        await api.addProperty({
+          ownerId: user.id,
+          propertyType: formData.propertyType,
+          roomType: formData.roomType,
+          rent: formData.rent,
+          address: formData.address,
+          description: formData.description,
+          coordinates: formData.coordinates,
+          images: formData.images.length > 0 ? formData.images : ['https://picsum.photos/seed/default/600/400']
+        });
+      }
       setIsPublished(true);
     } catch (err) {
-      setError('Something went wrong while publishing your ad. Please try again.');
+      setError('Something went wrong. Please try again.');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (isPublished) {
     return (
@@ -97,9 +139,11 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
           <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8">
             <i className="fa-solid fa-check text-4xl"></i>
           </div>
-          <h2 className="text-3xl font-black text-gray-900 mb-4">Property is Live!</h2>
+          <h2 className="text-3xl font-black text-gray-900 mb-4">{propertyId ? 'Changes Saved!' : 'Property is Live!'}</h2>
           <p className="text-gray-500 mb-10 leading-relaxed">
-            Congratulations! Your room has been successfully advertised on TO-LET. Seekers can now view your listing and send you enquiries.
+            {propertyId 
+              ? 'Your property details have been successfully updated and saved.' 
+              : 'Congratulations! Your room has been successfully advertised on TO-LET.'}
           </p>
           <div className="flex flex-col space-y-4">
             <button 
@@ -107,16 +151,6 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
               className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 shadow-lg transition"
             >
               Go to Dashboard
-            </button>
-            <button 
-              className="w-full bg-gray-50 text-gray-700 font-bold py-4 rounded-2xl hover:bg-gray-100 transition border border-gray-200"
-              onClick={() => {
-                // In a real app we'd navigate to the property page. 
-                // For this demo, we can just trigger a refresh or show dashboard.
-                onComplete();
-              }}
-            >
-              Preview My Listing
             </button>
           </div>
         </div>
@@ -129,8 +163,8 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
         <div className="bg-blue-600 p-10 text-white flex justify-between items-center">
           <div>
-            <h2 className="text-3xl font-bold">Advertise Your Room</h2>
-            <p className="text-blue-100 opacity-80">List details and reach thousands of students</p>
+            <h2 className="text-3xl font-bold">{propertyId ? 'Edit Your Property' : 'Advertise Your Room'}</h2>
+            <p className="text-blue-100 opacity-80">{propertyId ? 'Update details to keep your listing current' : 'List details and reach thousands of students'}</p>
           </div>
           <div className="text-4xl font-black opacity-20">Step {step}/2</div>
         </div>
@@ -250,7 +284,7 @@ export const AddProperty: React.FC<AddPropertyProps> = ({ user, onComplete }) =>
                   onClick={handleSubmit}
                   className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition"
                  >
-                  Publish Listing Now
+                  {propertyId ? 'Update Listing' : 'Publish Listing Now'}
                  </button>
                </div>
             </div>

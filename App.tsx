@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState<string>('landing');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<string[]>(['landing']);
 
@@ -85,8 +86,6 @@ const App: React.FC = () => {
     try {
       const u = await api.login(email, password);
       if (u) {
-        // Explicitly set user and navigate in case the Supabase listener doesn't trigger 
-        // (common in demo mode or certain network conditions)
         setUser(u);
         checkSetupAndNavigate(u);
       }
@@ -104,6 +103,11 @@ const App: React.FC = () => {
   const navigateToProperty = (id: string) => {
     setSelectedPropertyId(id);
     navigate('property-details');
+  };
+
+  const handleEditProperty = (id: string) => {
+    setEditingPropertyId(id);
+    navigate('edit-property');
   };
 
   const renderPage = () => {
@@ -131,9 +135,11 @@ const App: React.FC = () => {
       case 'search':
         return <Search onPropertyClick={navigateToProperty} />;
       case 'dashboard':
-        return <Dashboard user={user!} onNavigate={navigate} onPropertyClick={navigateToProperty} />;
+        return <Dashboard user={user!} onNavigate={navigate} onPropertyClick={navigateToProperty} onEditProperty={handleEditProperty} />;
       case 'add-property':
         return <AddProperty user={user!} onComplete={() => navigate('dashboard')} />;
+      case 'edit-property':
+        return <AddProperty user={user!} propertyId={editingPropertyId!} onComplete={() => navigate('dashboard')} />;
       case 'property-details':
         return <PropertyDetails propertyId={selectedPropertyId!} user={user} onNavigate={navigate} />;
       case 'wishlist':
